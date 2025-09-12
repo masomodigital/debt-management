@@ -30,7 +30,7 @@
     input[type="text"], input[type="date"], input[type="number"], input[type="password"]{ width:100%; padding:8px; box-sizing:border-box; }
     button { padding:8px 12px; margin-top:10px; border:none; border-radius:6px; cursor:pointer; background:#1976d2; color:#fff; }
     table { width:100%; border-collapse: collapse; margin-top:10px; border:1px solid #333; }
-    th, td { border:1px solid #333; padding:8px; text-align:left; }
+    th, td { border:1px solid #333; padding:8px; text-align:left; color: #000;}
     .muted { color:#666; font-size:13px; }
     .small { font-size:13px; }
     .row { display:flex; gap:12px; flex-wrap: wrap; }
@@ -56,7 +56,10 @@
 <body>
   <div id="container">
     <div id="loginView" class="card">
-      <h2>DEBTOR MANAGEMENT SYSTEM</h2>
+      <div style="text-align:center; margin-bottom:10px;">
+  <img src="https://i.imgur.com/0mlO4gB.png" alt="Logo" style="max-width:150px; width:50%; height:auto;">
+</div>
+<h2>DEBTOR MANAGEMENT SYSTEM</h2>
       <div class="muted">Login with your User ID and Password</div>
       <label>National ID<input id="nid" type="text" /></label>
       <label>Password<input id="pwd" type="password" /></label>
