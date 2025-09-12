@@ -57,8 +57,6 @@
       padding: 10px;
       text-align: left;
     }
-    tbody tr:nth-child(odd) { background-color: #e0e0e0; }
-    tbody tr:nth-child(even) { background-color: #d0f0ff; }
     .muted { color: #666; font-size: 13px; }
     .small { font-size: 13px; }
     .row { display: flex; gap: 15px; flex-wrap: wrap; }
@@ -161,7 +159,6 @@
         </table>
         <div id="tableMsg" class="muted"></div>
       </div>
-
     </div>
 
   </div>
@@ -244,7 +241,7 @@
       return;
     }
     document.getElementById('tableMsg').textContent = "";
-    rows.forEach((r, i) => {
+    rows.forEach(r => {
       const tr = document.createElement('tr');
       tr.className = r.Status && r.Status.toLowerCase() === 'unpaid' ? 'danger' : '';
       tr.innerHTML = `
