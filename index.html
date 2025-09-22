@@ -24,6 +24,13 @@
     .wait { color:#2e7d32; font-weight:bold; }
     .small { font-size:13px; color:#444; }
     .actions button { margin-right:6px; }
+
+    /* MOBILE FRIENDLY TABLE */
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    table { min-width: 700px; }
   </style>
 </head>
 <body>
@@ -31,14 +38,14 @@
     <!-- LOGIN -->
     <div id="loginView" class="card">
       <div style="text-align: center; margin-bottom: 20px;">
-  <img src="https://i.imgur.com/0mlO4gB.png" alt="Logo" style="max-width: 250px; width: 100%; height: auto;">
-</div>
+        <img src="https://i.imgur.com/0mlO4gB.png" alt="Logo" style="max-width: 250px; width: 100%; height: auto;">
+      </div>
 
-<h2>DEBTOR MANAGEMENT SYSTEM</h2>
+      <h2>DEBTOR MANAGEMENT SYSTEM</h2>
 
-<p style="color: green; font-weight: bold; font-size: 1.1em; text-align: center; margin-top: 15px;">
-  Masomo SMS App will automatically remind your debtors to pay you 5 days BEFORE debt payment DEADLINE, and continue to remind them DAILY if they fail to pay - UNTIL THEY PAY! Simply input the debt details and let the app work for you!
-</p>
+      <p style="color: green; font-weight: bold; font-size: 1.1em; text-align: center; margin-top: 15px;">
+        Masomo SMS App will automatically remind your debtors to pay you 5 days BEFORE debt payment DEADLINE, and continue to remind them DAILY if they fail to pay - UNTIL THEY PAY! Simply input the debt details and let the app work for you!
+      </p>
 
       <div class="muted">Login with your User ID and Password</div>
       <label>National ID<input id="nid" type="text" /></label>
@@ -89,14 +96,16 @@
       <!-- TABLE -->
       <div class="card">
         <h3>YOUR DEBTORS</h3>
-        <table id="debtorsTable">
-          <thead>
-            <tr>
-              <th>Name</th><th>Phone</th><th>Amount</th><th>Repayment</th><th>Status</th><th>Last Reminder</th><th>Action</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+        <div class="table-wrapper">
+          <table id="debtorsTable">
+            <thead>
+              <tr>
+                <th>Name</th><th>Phone</th><th>Amount</th><th>Repayment</th><th>Status</th><th>Last Reminder</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
         <div id="tableMsg" class="muted"></div>
       </div>
     </div>
@@ -115,7 +124,6 @@ async function callAPI(action, payload = {}) {
       headers: { "Content-Type": "application/json" },
       body
     });
-    // worker returns exact GAS response (sometimes array), so parse:
     const text = await resp.text();
     try { return JSON.parse(text); } catch (e) { return text; }
   } catch (e) {
@@ -126,7 +134,7 @@ async function callAPI(action, payload = {}) {
 
 /* ===== State ===== */
 let currentUser = null;
-let editingRow = null; // sheetRow being edited (number)
+let editingRow = null;
 
 /* ===== UI bindings ===== */
 const loginBtn = document.getElementById("loginBtn");
@@ -174,22 +182,18 @@ logoutBtn.addEventListener("click", () => {
 async function refreshDashboard() {
   if (!currentUser) return;
   tableMsg.innerHTML = '<span class="wait">Wait please...</span>';
-  // debtors
   const rows = await callAPI("getDebtorsForUser", { userID: currentUser.userID });
-  // summary
   const summary = await callAPI("getSummaryForUser", { userID: currentUser.userID });
   renderSummary(summary || {});
   renderDebtors(Array.isArray(rows) ? rows : (rows.debtors || rows));
   tableMsg.textContent = "";
 }
 
-/* Render summary */
 function renderSummary(s) {
   document.getElementById("totalDebtors").textContent = s.totalDebtors ?? 0;
   document.getElementById("totalUnpaid").textContent = s.totalUnpaid ?? 0;
 }
 
-/* Render debtors table */
 function renderDebtors(rows) {
   const tbody = document.querySelector("#debtorsTable tbody");
   tbody.innerHTML = "";
@@ -199,7 +203,6 @@ function renderDebtors(rows) {
   }
   tableMsg.textContent = "";
   rows.forEach(r => {
-    // r fields come from your GAS (PascalCase)
     const name = r.DebtorName ?? "";
     const phone = r.Phone != null ? String(r.Phone) : "";
     const amount = r.Amount != null ? String(r.Amount) : "";
@@ -226,7 +229,6 @@ function renderDebtors(rows) {
     tbody.appendChild(tr);
   });
 
-  // attach action listeners
   Array.from(document.getElementsByClassName("markPaidBtn")).forEach(b => {
     b.addEventListener("click", async function() {
       const sheetRow = Number(this.getAttribute("data-row"));
@@ -243,11 +245,9 @@ function renderDebtors(rows) {
       const sheetRow = Number(this.getAttribute("data-row"));
       const tr = this.closest("tr");
       const tds = tr.querySelectorAll("td");
-      // columns: Name, Phone, Amount, Repayment, Status, LastReminder
       document.getElementById("dName").value = tds[0].textContent || "";
       document.getElementById("dPhone").value = tds[1].textContent || "";
       document.getElementById("dAmount").value = tds[2].textContent || "";
-      // Repayment in dd/mm/yyyy -> convert to yyyy-mm-dd for <input date>
       const parts = tds[3].textContent.split("/");
       document.getElementById("dRepayment").value = (parts.length === 3) ? `${parts[2]}-${parts[1]}-${parts[0]}` : "";
       editingRow = sheetRow;
@@ -275,14 +275,13 @@ addDebtorBtn.addEventListener("click", async () => {
   const name = document.getElementById("dName").value.trim();
   const phone = document.getElementById("dPhone").value.trim();
   const amount = document.getElementById("dAmount").value.trim();
-  const repayment = document.getElementById("dRepayment").value; // yyyy-mm-dd
+  const repayment = document.getElementById("dRepayment").value;
 
   if (!name || !phone || !amount || !repayment) {
     addMsg.textContent = "Please fill all fields.";
     return;
   }
 
-  // GAS expects PascalCase fields in debtorObj
   const debtorObj = {
     DebtorName: name,
     Phone: phone,
@@ -294,7 +293,6 @@ addDebtorBtn.addEventListener("click", async () => {
   addMsg.innerHTML = '<span class="wait">Wait please...</span>';
 
   if (editingRow) {
-    // Update existing
     const res = await callAPI("updateDebtor", { sheetRow: Number(editingRow), debtorObj });
     if (res && res.success) {
       addMsg.textContent = "Debtor updated.";
@@ -308,7 +306,6 @@ addDebtorBtn.addEventListener("click", async () => {
       addMsg.textContent = res && res.message ? res.message : "Failed to update debtor.";
     }
   } else {
-    // Add new
     const res = await callAPI("addDebtor", { userID: currentUser.userID, debtorObj });
     if (res && res.success) {
       addMsg.textContent = "Debtor added.";
@@ -320,7 +317,6 @@ addDebtorBtn.addEventListener("click", async () => {
   }
 });
 
-/* Cancel edit */
 cancelEditBtn.addEventListener("click", () => {
   editingRow = null;
   document.getElementById("addDebtorBtn").textContent = "ADD DEBTOR";
@@ -337,11 +333,9 @@ function clearForm() {
   document.getElementById("dRepayment").value = "";
 }
 
-/* Utilities */
 function formatDate(d) {
   if (!d) return "";
   try {
-    // handle empty or invalid
     const dt = new Date(d);
     if (isNaN(dt.getTime())) return "";
     const day = ("0" + dt.getDate()).slice(-2);
@@ -360,7 +354,6 @@ function escapeHtml(str) {
   });
 }
 
-/* Prevent accidental form submit on Enter */
 document.addEventListener("keydown", function(e) {
   if (e.key === "Enter" && (document.activeElement.tagName === "INPUT")) {
     e.preventDefault();
