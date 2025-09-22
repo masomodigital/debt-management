@@ -1,187 +1,199 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Debtors App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Masomo Debtor Dashboard</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background: #f9f9f9;
-    }
-    .container {
-      max-width: 500px;
-      margin: auto;
-      padding: 20px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background: #007bff;
-      color: white;
-      font-weight: bold;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #0056b3;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
     #dashboard { display: none; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 15px 0;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-    }
-    th {
-      background: #007bff;
-      color: white;
-    }
-    .actions button {
-      width: auto;
-      margin-right: 5px;
-    }
+    .hidden { display: none; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f2f2f2; }
+    button { margin: 2px; padding: 5px 10px; cursor: pointer; }
+    .form-section { margin: 15px 0; }
   </style>
 </head>
 <body>
-  <!-- Login Section -->
-  <div class="container" id="login">
-    <h2>Login</h2>
-    <input type="text" id="nid" placeholder="National ID">
-    <input type="password" id="pwd" placeholder="Password">
-    <button onclick="loginUser()">Login</button>
-    <p id="loginResult"></p>
+  <h2>Masomo Debtor Dashboard</h2>
+
+  <!-- Login -->
+  <div id="loginSection">
+    <h3>Login</h3>
+    <input type="text" id="nid" placeholder="National ID"/><br/>
+    <input type="password" id="pwd" placeholder="Password"/><br/>
+    <button onclick="login()">Login</button>
+    <div id="loginMessage"></div>
   </div>
 
-  <!-- Dashboard Section -->
-  <div class="container" id="dashboard">
-    <h2>Debtors Dashboard</h2>
-    <p id="summary"></p>
+  <!-- Dashboard -->
+  <div id="dashboard">
+    <h3>Welcome, <span id="userName"></span></h3>
+    <button onclick="logout()">Logout</button>
 
-    <h3>Add Debtor</h3>
-    <input type="text" id="debtorName" placeholder="Name">
-    <input type="text" id="debtorPhone" placeholder="Phone">
-    <input type="number" id="debtorAmount" placeholder="Amount">
-    <button onclick="addDebtor()">Add Debtor</button>
+    <div class="form-section">
+      <h4>Summary</h4>
+      <div id="summary"></div>
+    </div>
 
-    <h3>Debtors List</h3>
-    <table>
-      <thead>
-        <tr><th>Name</th><th>Phone</th><th>Amount</th><th>Actions</th></tr>
-      </thead>
-      <tbody id="debtorsTable"></tbody>
-    </table>
+    <div class="form-section">
+      <h4>Debtors</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th><th>Amount</th><th>Phone</th><th>Due Date</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="debtorTable"></tbody>
+      </table>
+    </div>
+
+    <div class="form-section">
+      <h4 id="formTitle">Add Debtor</h4>
+      <input type="text" id="debtorName" placeholder="Debtor Name"/><br/>
+      <input type="number" id="debtorAmount" placeholder="Amount"/><br/>
+      <input type="text" id="debtorPhone" placeholder="Phone"/><br/>
+      <input type="date" id="debtorDueDate"/><br/>
+      <button id="saveBtn" onclick="addDebtor()">Save</button>
+      <button id="cancelBtn" class="hidden" onclick="cancelEdit()">Cancel</button>
+    </div>
   </div>
 
   <script>
-    const APP_URL = "https://script.google.com/macros/s/AKfycbwcU1Znd_3lE1LHroWrMHS6LXEzRS1GrYoS6S86aiiemBLV7t6o5lN3f3DnUppDFB1Efw/exec";
+    const API_URL = "https://shiny-cloud-acd2.ev-dmaundu.workers.dev/";
     let currentUser = null;
+    let editingRow = null;
 
-    // Reusable API call
-    async function callAPI(payload) {
-      const res = await fetch(APP_URL, {
+    async function callAPI(action, payload={}) {
+      const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ action, ...payload })
       });
       return res.json();
     }
 
-    // Login
-    async function loginUser() {
+    async function login() {
       const nid = document.getElementById("nid").value;
       const pwd = document.getElementById("pwd").value;
-      const data = await callAPI({ action: "loginUser", nid, pwd });
-      document.getElementById("loginResult").innerText = data.message;
-      if (data.success) {
-        currentUser = nid;
-        document.getElementById("login").style.display = "none";
+      const res = await callAPI("loginUser", { nid, pwd });
+      if (res.success) {
+        currentUser = res.user;
+        document.getElementById("userName").textContent = currentUser.name;
+        document.getElementById("loginSection").style.display = "none";
         document.getElementById("dashboard").style.display = "block";
-        loadDebtors();
-        loadSummary();
-      }
-    }
-
-    // Load Debtors
-    async function loadDebtors() {
-      const data = await callAPI({ action: "getDebtorsForUser", userID: currentUser });
-      const tbody = document.getElementById("debtorsTable");
-      tbody.innerHTML = "";
-      if (data.success && data.debtors.length) {
-        data.debtors.forEach(d => {
-          const row = `<tr>
-            <td>${d.name}</td>
-            <td>${d.phone}</td>
-            <td>${d.amount}</td>
-            <td class="actions">
-              <button onclick="markPaid(${d.sheetRow})">Paid</button>
-              <button onclick="deleteDebtor(${d.sheetRow})">Delete</button>
-            </td>
-          </tr>`;
-          tbody.insertAdjacentHTML("beforeend", row);
-        });
+        refreshDashboard();
       } else {
-        tbody.innerHTML = "<tr><td colspan='4'>No debtors found.</td></tr>";
+        document.getElementById("loginMessage").textContent = res.message;
       }
     }
 
-    // Load Summary
-    async function loadSummary() {
-      const data = await callAPI({ action: "getSummaryForUser", userID: currentUser });
-      if (data.success) {
-        document.getElementById("summary").innerText =
-          `Total Debtors: ${data.summary.count}, Total Amount: ${data.summary.total}`;
-      }
+    function logout() {
+      currentUser = null;
+      document.getElementById("loginSection").style.display = "block";
+      document.getElementById("dashboard").style.display = "none";
+      document.getElementById("loginMessage").textContent = "";
     }
 
-    // Add Debtor
-    async function addDebtor() {
-      const name = document.getElementById("debtorName").value;
-      const phone = document.getElementById("debtorPhone").value;
-      const amount = document.getElementById("debtorAmount").value;
-      const debtorObj = { name, phone, amount };
-
-      const data = await callAPI({ action: "addDebtor", userID: currentUser, debtorObj });
-      alert(data.message);
-      if (data.success) {
-        loadDebtors();
-        loadSummary();
-        document.getElementById("debtorName").value = "";
-        document.getElementById("debtorPhone").value = "";
-        document.getElementById("debtorAmount").value = "";
-      }
+    async function refreshDashboard() {
+      if (!currentUser) return;
+      const debtors = await callAPI("getDebtorsForUser", { userID: currentUser.userID });
+      renderDebtors(debtors);
+      const summary = await callAPI("getSummaryForUser", { userID: currentUser.userID });
+      renderSummary(summary);
     }
 
-    // Mark Debtor as Paid
+    function renderDebtors(debtors) {
+      const tbody = document.getElementById("debtorTable");
+      tbody.innerHTML = "";
+      if (!debtors || !debtors.length) {
+        tbody.innerHTML = `<tr><td colspan="5">No debtors found.</td></tr>`;
+        return;
+      }
+      debtors.forEach(d => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${d.name}</td>
+          <td>${d.amount}</td>
+          <td>${d.phone}</td>
+          <td>${d.dueDate}</td>
+          <td>
+            <button onclick="markPaid('${d.row}')">Paid</button>
+            <button onclick="editDebtor('${d.row}', '${d.name}', '${d.amount}', '${d.phone}', '${d.dueDate}')">Edit</button>
+            <button onclick="deleteDebtor('${d.row}')">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderSummary(summary) {
+      if (!summary) {
+        document.getElementById("summary").innerHTML = "No summary data.";
+        return;
+      }
+      document.getElementById("summary").innerHTML =
+        `Total Debtors: ${summary.totalDebtors || 0}, ` +
+        `Total Amount: ${summary.totalAmount || 0}, ` +
+        `Paid: ${summary.totalPaid || 0}, ` +
+        `Unpaid: ${summary.totalUnpaid || 0}`;
+    }
+
     async function markPaid(sheetRow) {
-      const data = await callAPI({ action: "markDebtorPaid", sheetRow });
-      alert(data.message);
-      if (data.success) {
-        loadDebtors();
-        loadSummary();
-      }
+      await callAPI("markDebtorPaid", { sheetRow });
+      refreshDashboard();
     }
 
-    // Delete Debtor
     async function deleteDebtor(sheetRow) {
-      const data = await callAPI({ action: "deleteDebtor", sheetRow });
-      alert(data.message);
-      if (data.success) {
-        loadDebtors();
-        loadSummary();
-      }
+      await callAPI("deleteDebtor", { sheetRow });
+      refreshDashboard();
+    }
+
+    function editDebtor(row, name, amount, phone, dueDate) {
+      editingRow = row;
+      document.getElementById("debtorName").value = name;
+      document.getElementById("debtorAmount").value = amount;
+      document.getElementById("debtorPhone").value = phone;
+      document.getElementById("debtorDueDate").value = dueDate;
+      document.getElementById("formTitle").textContent = "Edit Debtor";
+      document.getElementById("saveBtn").onclick = updateDebtor;
+      document.getElementById("cancelBtn").classList.remove("hidden");
+    }
+
+    async function updateDebtor() {
+      const obj = {
+        name: document.getElementById("debtorName").value,
+        amount: document.getElementById("debtorAmount").value,
+        phone: document.getElementById("debtorPhone").value,
+        dueDate: document.getElementById("debtorDueDate").value
+      };
+      await callAPI("updateDebtor", { sheetRow: editingRow, debtorObj: obj });
+      cancelEdit();
+      refreshDashboard();
+    }
+
+    function cancelEdit() {
+      editingRow = null;
+      document.getElementById("debtorName").value = "";
+      document.getElementById("debtorAmount").value = "";
+      document.getElementById("debtorPhone").value = "";
+      document.getElementById("debtorDueDate").value = "";
+      document.getElementById("formTitle").textContent = "Add Debtor";
+      document.getElementById("saveBtn").onclick = addDebtor;
+      document.getElementById("cancelBtn").classList.add("hidden");
+    }
+
+    async function addDebtor() {
+      const obj = {
+        name: document.getElementById("debtorName").value,
+        amount: document.getElementById("debtorAmount").value,
+        phone: document.getElementById("debtorPhone").value,
+        dueDate: document.getElementById("debtorDueDate").value
+      };
+      await callAPI("addDebtor", { userID: currentUser.userID, debtorObj: obj });
+      cancelEdit();
+      refreshDashboard();
     }
   </script>
 </body>
