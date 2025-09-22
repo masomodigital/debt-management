@@ -56,6 +56,7 @@
   </style>
 </head>
 <body>
+  <!-- Login Section -->
   <div class="container" id="login">
     <h2>Login</h2>
     <input type="text" id="nid" placeholder="National ID">
@@ -64,6 +65,7 @@
     <p id="loginResult"></p>
   </div>
 
+  <!-- Dashboard Section -->
   <div class="container" id="dashboard">
     <h2>Debtors Dashboard</h2>
     <p id="summary"></p>
@@ -87,6 +89,7 @@
     const APP_URL = "https://script.google.com/macros/s/AKfycbwcU1Znd_3lE1LHroWrMHS6LXEzRS1GrYoS6S86aiiemBLV7t6o5lN3f3DnUppDFB1Efw/exec";
     let currentUser = null;
 
+    // Reusable API call
     async function callAPI(payload) {
       const res = await fetch(APP_URL, {
         method: "POST",
@@ -96,6 +99,7 @@
       return res.json();
     }
 
+    // Login
     async function loginUser() {
       const nid = document.getElementById("nid").value;
       const pwd = document.getElementById("pwd").value;
@@ -110,8 +114,9 @@
       }
     }
 
+    // Load Debtors
     async function loadDebtors() {
-      const data = await callAPI({ action: "getDebtorsForUser", nid: currentUser });
+      const data = await callAPI({ action: "getDebtorsForUser", userID: currentUser });
       const tbody = document.getElementById("debtorsTable");
       tbody.innerHTML = "";
       if (data.success && data.debtors.length) {
@@ -121,8 +126,8 @@
             <td>${d.phone}</td>
             <td>${d.amount}</td>
             <td class="actions">
-              <button onclick="markPaid('${d.phone}')">Paid</button>
-              <button onclick="deleteDebtor('${d.phone}')">Delete</button>
+              <button onclick="markPaid(${d.sheetRow})">Paid</button>
+              <button onclick="deleteDebtor(${d.sheetRow})">Delete</button>
             </td>
           </tr>`;
           tbody.insertAdjacentHTML("beforeend", row);
@@ -132,19 +137,23 @@
       }
     }
 
+    // Load Summary
     async function loadSummary() {
-      const data = await callAPI({ action: "getSummaryForUser", nid: currentUser });
+      const data = await callAPI({ action: "getSummaryForUser", userID: currentUser });
       if (data.success) {
         document.getElementById("summary").innerText =
           `Total Debtors: ${data.summary.count}, Total Amount: ${data.summary.total}`;
       }
     }
 
+    // Add Debtor
     async function addDebtor() {
       const name = document.getElementById("debtorName").value;
       const phone = document.getElementById("debtorPhone").value;
       const amount = document.getElementById("debtorAmount").value;
-      const data = await callAPI({ action: "addDebtor", nid: currentUser, name, phone, amount });
+      const debtorObj = { name, phone, amount };
+
+      const data = await callAPI({ action: "addDebtor", userID: currentUser, debtorObj });
       alert(data.message);
       if (data.success) {
         loadDebtors();
@@ -155,8 +164,9 @@
       }
     }
 
-    async function markPaid(phone) {
-      const data = await callAPI({ action: "markDebtorPaid", nid: currentUser, phone });
+    // Mark Debtor as Paid
+    async function markPaid(sheetRow) {
+      const data = await callAPI({ action: "markDebtorPaid", sheetRow });
       alert(data.message);
       if (data.success) {
         loadDebtors();
@@ -164,8 +174,9 @@
       }
     }
 
-    async function deleteDebtor(phone) {
-      const data = await callAPI({ action: "deleteDebtor", nid: currentUser, phone });
+    // Delete Debtor
+    async function deleteDebtor(sheetRow) {
+      const data = await callAPI({ action: "deleteDebtor", sheetRow });
       alert(data.message);
       if (data.success) {
         loadDebtors();
