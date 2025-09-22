@@ -121,19 +121,20 @@
 <script>
   const WORKER_URL = "https://shiny-cloud-acd2.ev-dmaundu.workers.dev/"; 
 
-  async function callAPI(action, payload = {}) {
-    try {
-      const res = await fetch(WORKER_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, ...payload })
-      });
-      return await res.json();
-    } catch (err) {
-      console.error("API Error:", err);
-      return { success: false, message: "Network error" };
-    }
+async function callAPI(action, payload = {}) {
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: "POST",
+      mode: "cors",  // <--- add this line
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, ...payload })
+    });
+    return await res.json();
+  } catch (err) {
+    console.error("API Error:", err);
+    return { success: false, message: "Network error" };
   }
+}
 
   let currentUser = null;
   let editingRow = null;
